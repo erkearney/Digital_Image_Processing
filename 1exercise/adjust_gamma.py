@@ -1,4 +1,5 @@
 # Adrian Rosebrock's article on pyimagesearch helped me immensely here:
+# his site is also where I got the test images in this directory from
 # https://www.pyimagesearch.com/2015/10/05/opencv-gamma-correction/
 import cv2 as cv
 import numpy as np
