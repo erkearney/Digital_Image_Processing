@@ -1,3 +1,17 @@
+"""
+Adrian Rosebrock's article "Skin Detection: A Step-by-Step Example
+using Python and OpenCV helped me immensely with this project.
+
+https://www.pyimagesearch.com/2014/08/18/skin-detection-step-step-example-using-python-opencv/
+
+This project is, in part, an implementation of the technique(s) 
+discussed in "A survey of skin-color modeling and detetction methods",
+by P. Kakumanu, S. Makrogiannis, and N. Bourbakis, published in
+"Pattern Recognition", volume #40, issue #3, pages 1106-1122 (2007).
+
+https://www.sciencedirect.com/science/article/pii/S0031320306002767
+"""
+
 import cv2
 import numpy as np
 import argparse
@@ -25,23 +39,37 @@ def validate_image():
             exit()
     return img
 
+def create_mask(image):
+    # TODO, add histogram equalization or something
+    # For now, just using hard coded values
+    lower = np.array([0, 48, 80], dtype = "uint8")
+    upper = np.array([20, 255, 255], dtype = "uint8")
+    # Convert the image to HSV
+    hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+    # filter out values outside of our hardcoded range
+    filtered = cv2.inRange(hsv, lower, upper)
+    # perform a gaussian blur on the mask to get rid of noise
+    gaus = cv2.GaussianBlur(filtered, (3, 3), 0)
+    return gaus
+
+def detect_skin(image):
+    img = image.copy()
+    mask = create_mask(img)
+    for r in range(0, img.shape[0]):
+        for c in range(0, img.shape[1]):
+            if mask[r][c] == 0:
+                img[r][c] = 0
+
+    return img
+
 def main():
     img = validate_image()
-    img_blue = img.copy()
-    img_blue[:,:,1] = 0
-    img_blue[:,:,2] = 0
-
-    img_green = img[:,:,1]
-    img_red = img[:,:,2]
-
-
-
-
+    mask = create_mask(img)
+    skin = detect_skin(img)
 
     cv2.imshow('original', img)
-    cv2.imshow('blue', img_blue)
-    cv2.imshow('green', img_green)
-    cv2.imshow('red', img_red)
+    cv2.imshow('mask', mask)
+    cv2.imshow('skin', skin)
 
 
     cv2.waitKey(0)
