@@ -43,9 +43,13 @@ def create_mask(image):
     # TODO, add histogram equalization or something
     # For now, just using hard coded values
     lower = np.array([0, 48, 80], dtype = "uint8")
-    upper = np.array([20, 255, 255], dtype = "uint8")
+    upper = np.array([20, 255, 222], dtype = "uint8")
     # Convert the image to HSV
     hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+    # Calculuate the histogram of the luminance of this image
+    hist = cv2.calcHist([hsv], [2], None, [256], [0,256])
+    plt.plot(hist)
+    plt.show()
     # filter out values outside of our hardcoded range
     filtered = cv2.inRange(hsv, lower, upper)
     # perform a gaussian blur on the mask to get rid of noise
