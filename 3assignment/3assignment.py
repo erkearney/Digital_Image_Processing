@@ -57,10 +57,9 @@ def find_luminance_local_min(hsv):
     # to make sure the two peaks aren't too close to each other. In any case,
     # this entire approach is probably completely wrong.
     # Get just the luminance component of the image, flatten it to a 1D 
-    # array, and sort it
+    # array
     lum = hsv[:,:,2]
     lum = lum.ravel()
-    np.sort(lum)
     # Find the first peak of the histogram by taking the mode of the array.
     mode1 = stats.mode(lum)
     # Remove all values in that array that are less than the peak, then find
@@ -77,13 +76,14 @@ def filter_skin(image, mask):
 
 def main():
     img = validate_image()
-    find_luminance_local_min(img)
     mask = create_mask(img)
     result = filter_skin(img, mask)
 
     cv2.imshow('original', img)
     cv2.imshow('mask', mask)
+    cv2.imwrite('./mask.bmp', mask)
     cv2.imshow('result', result)
+    cv2.imwrite('./result.bmp', result)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
 
