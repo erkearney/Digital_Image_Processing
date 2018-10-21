@@ -4,7 +4,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 
 def create_image():
-    img = np.full((256, 256), 0.7)
+    img = np.full((256, 256), 0.4)
     # There is no exact center, I will use the top-right corner 
     center = (128, 128)
     # Use the distance formula to determine how far each pixel is from 
@@ -14,7 +14,7 @@ def create_image():
         for c in range(0, img.shape[1]):
             distance = np.sqrt((center[0] - c)**2 + (center[1] - r)**2)
             if distance > radius:
-                img[r, c] = 0.4
+                img[r, c] = 0.7
 
     return img
 
@@ -24,6 +24,13 @@ def gaussian_noise(image, mean, var):
     gauss = np.random.uniform(mean,sigma,(row,col))
     gauss = gauss.reshape(row,col)
     return image + gauss
+
+def uniform_noise(image, variance):
+    img = image.copy()
+    row,col = image.shape[:2]
+    noise = np.random.uniform(0-variance, 0+variance, img.size)
+    noise = np.reshape(noise, (row, col))
+    return img + img * noise
 
 def salt_pepper(image, s_vs_p, amount):
     # s_vs_p -- the amount of salt relative to the amount of pepper, use 0.5
@@ -43,17 +50,19 @@ def salt_pepper(image, s_vs_p, amount):
     out[tuple(coords)] = 0
     return out
 
-def uniform_noise(image, variance):
-    img = image.copy()
-    row,col = image.shape[:2]
-    noise = np.random.uniform(0-variance, 0+variance, img.size)
-    noise = np.reshape(noise, (row, col))
-    return img + img * noise
-
-def fix_gaussian_noise(image, ksize):
+def fix_gaussian_noise(image, ksize, repetitions):
     # Use an arithmetic mean filter to remove gaussian noise
-    img = image.copy()
+    # repeat this process multiple times to get better results
+    mean = image.copy()
     mean_kernel = np.ones((ksize,ksize), np.float32)/(ksize**2)
+    for _ in range(0, repetitions):
+        mean = cv2.filter2D(mean, -1, mean_kernel)
+    return mean
+
+def fix_uniform_noise(image, ksize):
+    # Use an arithmetic mean filter to remove uniform noise
+    img = image.copy()
+    mean_kernel = np.ones((ksize, ksize), np.float32)/(ksize**2)
     mean = cv2.filter2D(img, -1, mean_kernel)
     return mean
 
@@ -76,20 +85,43 @@ def main():
     s_and_p = salt_pepper(img, 0.5, 0.004)
     uni = uniform_noise(img, 0.05)
 
-    #plt.hist(img.ravel(),256,[0,1]); plt.show()
-    #plt.hist(gaus.ravel(),256,[0,1]); plt.show()
-    #plt.hist(s_and_p.ravel(),256,[0,1]); plt.show()
-    #plt.hist(uni.ravel(),256,[0,1]); plt.show()
+    #img_hist = plt.hist(img.ravel(),256,[0,1]); plt.show()
+    #gaus_hist = plt.hist(gaus.ravel(),256,[0,1]); plt.show()
+    #s_and_p_hist = plt.hist(s_and_p.ravel(),256,[0,1]); plt.show()
+    #uni_hist = plt.hist(uni.ravel(),256,[0,1]); plt.show()
 
-    gaus_fixed = fix_gaussian_noise(gaus, 3)
+    gaus_fixed = fix_gaussian_noise(gaus, 3, 10)
+    uni_fixed = fix_uniform_noise(uni, 3)
     salt_and_pepper_fixed = fix_salt_and_pepper(s_and_p, 3, 3)
-    
-    cv2.imshow('img', img)
-    cv2.imshow('gaus', gaus)
-    cv2.imshow('s&p', s_and_p)
-    cv2.imshow('uni', uni)
-    cv2.imshow('gaus_fixed', gaus_fixed)
-    cv2.imshow('s&p_fixed', salt_and_pepper_fixed)
+
+    titles = ['img', 'gaus', 's&p', 'uni', 
+                'gaus_fixed', 'uni_fixed', 's&p_fixed']
+
+    images = [img, gaus, s_and_p, uni,
+                gaus_fixed, uni_fixed, salt_and_pepper_fixed]
+
+    # Normalize all the images
+    norm_images = [np.multiply(x, 255) for x in images]
+
+    for i in range(0, len(norm_images)):
+        # I'm not sure why, but imshow() doesn't like the normalized versions
+        # of the images, while imwrite() doesn't like the un-normalized
+        # versions. . . 
+        cv2.imshow(titles[i], images[i])
+        cv2.imwrite(titles[i] + '.bmp', norm_images[i])
+
+    #cv2.imshow('img', img)
+    #cv2.imshow('gaus', gaus)
+    #cv2.imshow('s&p', s_and_p)
+    #cv2.imshow('uni', uni)
+    #cv2.imshow('gaus_fixed', gaus_fixed)
+    #cv2.imshow('uni_fixed', uni_fixed)
+    #cv2.imshow('s&p_fixed', salt_and_pepper_fixed)
+
+    #cv2.imwrite('./gaus.bmp', gaus)
+    #cv2.imwrite('./s_and_p.bmp', s_and_p)
+    #cv2.imwrite('./uni.bmp', uni)
+
     cv2.waitKey(0)
     cv2.destroyAllWindows()
 
