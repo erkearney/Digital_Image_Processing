@@ -18,6 +18,7 @@ def create_image():
 
     return img
 
+#https://stackoverflow.com/questions/22937589/how-to-add-noise-gaussian-salt-and-pepper-etc-to-image-in-python-with-opencv
 def gaussian_noise(image, mean, var):
     row,col= image.shape
     sigma = var**0.5
@@ -109,18 +110,6 @@ def main():
         # versions. . . 
         cv2.imshow(titles[i], images[i])
         cv2.imwrite(titles[i] + '.bmp', norm_images[i])
-
-    #cv2.imshow('img', img)
-    #cv2.imshow('gaus', gaus)
-    #cv2.imshow('s&p', s_and_p)
-    #cv2.imshow('uni', uni)
-    #cv2.imshow('gaus_fixed', gaus_fixed)
-    #cv2.imshow('uni_fixed', uni_fixed)
-    #cv2.imshow('s&p_fixed', salt_and_pepper_fixed)
-
-    #cv2.imwrite('./gaus.bmp', gaus)
-    #cv2.imwrite('./s_and_p.bmp', s_and_p)
-    #cv2.imwrite('./uni.bmp', uni)
 
     cv2.waitKey(0)
     cv2.destroyAllWindows()
