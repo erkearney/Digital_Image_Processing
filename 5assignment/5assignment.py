@@ -110,6 +110,7 @@ if __name__ == '__main__':
         cv2.imshow('final result', face)
     else:
         cv2.imshow('Result', np.hstack([img, face]))
+        cv2.imwrite('Results.jpg', np.hstack([img, face]))
         
     cv2.waitKey(0)
     cv2.destroyAllWindows()
