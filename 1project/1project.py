@@ -24,75 +24,114 @@ class Person:
         for filename in os.listdir(self.__path):
             if identifier in filename:
                 image_path = os.path.join(self.__path, filename)
-                img = cv2.imread(image_path)
+                img = cv2.imread(image_path, 0)
 
                 # Make sure the image loaded properly
                 if img is None:
                     print("image: {} not read properly".format(imagePath))
                 else:
                     # Convert the image to floating point
-                    img = np.float32(img)/255.0
+                    img = np.float32(img)/255
                     # Add the image to the list
                     self.__images.append(img)
                     #print("{} loaded".format(image_path))
 
         self.__num_images = len(self.__images)
 
+    def get_id_num(self):
+        return self.__id_num
+
     def get_size(self):
         return self.__images[0].size
 
+    def get_shape(self):
+        return self.__images[0].shape
+
+    def get_num_images(self):
+        return self.__num_images
+
     def compute_mean(self):
-        num_images = len(self.__images)
-        size = self.__images[0].shape
-        # data will hold all the flattened face images
-        data = np.zeros((num_images, size[0] * size[1] * size[2]), dtype=np.float32)  
+        num_images = self.get_num_images()
+        size = self.get_size()
+        # Data will hold the flattened images
+        data = np.zeros((num_images, size), dtype=np.float32)
+        #data = np.zeros((size, num_images), dtype=np.float32)
         for i in range(self.__num_images):
-            # For each training image, change to 1 column vector*
-            image = self.__images[i].flatten()
-            # * numpy.matrix.flatten() actually converts the matrix to a
-            # single row, there doesn't appear to be a way to convert a 
-            # matrix to a vector
+            # 1. For each training image, change to 1 column vector*
+            image = (self.__images[i].flatten()).T
+            # * numpy.matrix.flatten() actually converts the matrix to an
+            # array, so we need to take the transpose of the flattened image
+            # to get our vector
             data[i,:] = image
-        mean = np.mean(data, axis=0)
-        return mean
+        # 2. For each person, calculate the average vector Xi
+        Xi = np.mean(data, axis=0)
+        return Xi
 
     def compute_deviation(self, Xi, Me):
         # Returns Ai = Xi - Me
         return Xi - Me
 
-    def compute_eigen_vectors(self, Ai):
-        # Returns the eigen vectors of A' * A
-        A_transpose = np.transpose(Ai)
-        print(A_transpose)
-
 def main():
-    # Calculate the mean vector, Me, for all persons in the system
-    people = []
+    # 3. Calculate the mean vector, Me, for all persons in the system
+    people = [Person(TRAINING_DATASET, str(i)) for i in range(NUM_TRAINING)]
+    size = people[0].get_size()
     # Use the first person to setup the mean vector
-    person = Person(TRAINING_DATASET, 0)
-    Me = person.compute_mean()
-    people.append(person)
-    # Create a person object for each person in the training set
-    for i in range(1, NUM_TRAINING):
-        person = Person(TRAINING_DATASET, str(i))
-        # Add each persons' average vector to the mean vector
-        Me = np.add(Me, person.compute_mean())
-        people.append(person)
-
+    Me = people[0].compute_mean()
+    # Then add every other persons' mean vector to Me
+    for i in range(1, len(people)):
+        Me = np.add(Me, people[i].compute_mean())
+    # Finally, divide the mean vector by the number of people
     Me = np.divide(Me, NUM_TRAINING)
 
-    # Let Ai = Xi - Me
-    A = np.zeros((NUM_TRAINING, people[0].get_size()), dtype=np.float32)
+    # 4. Let Ai = Xi - Me
+    # Create a matrix of size NUM_TRAINING x image_size, fill it with 
+    # Ai = Xi - Me
+    A = np.zeros((size, NUM_TRAINING), dtype=np.float32)
     for i in range(NUM_TRAINING):
         Ai = people[i].compute_deviation(people[i].compute_mean(), Me)
-        A[i,:] = Ai
+        A[:,i] = Ai
 
-    # Calculate the eigen vecotrs of A' * A and store it as P2
-    #https://docs.opencv.org/3.0-beta/modules/core/doc/operations_on_arrays.html?highlight=pca#cv2.PCACompute
-    #https://docs.scipy.org/doc/numpy-1.15.1/reference/generated/numpy.matmul.html
-    print("Computing eigenvectors...")
-    #mean, P2 = cv2.PCACompute(np.matmul(A.T, A), None)
-    #print(P2)
+    ATA = np.matmul(A.T, A)
+    # 5. Calculate the eigen vectors of A' * A and store it as P2
+    # https://docs.scipy.org/doc/numpy-1.15.1/reference/generated/numpy.linalg.eig.html
+    eigen_values, P2 = np.linalg.eig(ATA)
+
+    # 6. Calculate the weight of the training data projected into eigen space
+    # with wt_A = P2*(A'*A)
+    # 6a. Calculate the eigen vectors of A*A' as P = A*P2
+    P = np.matmul(A, P2)
+    # 6b. Calculate the weight of the training data projected into eigensapce
+    # wt_A = P'*A
+    wt_A = np.matmul(P.T,A)
+
+    shape = people[0].get_shape()
+    '''
+    # Show average face minus the mean
+    average_faces = A.T
+    for i in range(average_faces.shape[0]):
+        face = np.reshape(average_faces[i], shape)
+        #norm_value = 1 / (np.amax(face))
+        #face *= norm_value
+        face = cv2.resize(face, (0,0), fx=5, fy=5)
+        cv2.imshow("face", face)
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
+    '''
+
+    # Show eigen faces
+    eigen_vectors = P.T
+    for i in range(eigen_vectors.shape[0]):
+        face = eigen_vectors[i].reshape(shape)
+        #norm_value = 1 / (np.amax(face))
+        #face *= norm_value
+        face += 0.5
+        cv2.imwrite("eigen_face_{}.bmp".format(str(i)), face)
+        face = cv2.resize(face, (0,0), fx=5, fy=5)
+        print(face)
+        cv2.imshow("eigen face", face)
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
+
 
 if __name__ == "__main__":
     main()
