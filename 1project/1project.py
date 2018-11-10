@@ -5,23 +5,29 @@ import os
 
 NUM_TRAINING = 20
 TRAINING_DATASET = "./LargeDataSet/enrolling"
+TESTING_DATASET = "./LargeDataSet/testing"
 
 class Person:
-    def __init__(self, path, id_num):
+    def __init__(self, path, id_num, num_images):
         self.__id_num = id_num
         self.__path = path
         self.__images = []
-        self.find_images()
+        self.find_images(num_images)
 
-    def find_images(self):
+    def find_images(self, num_images):
         # Append a 0 to id_num if it's less than 10, because we need 07, not 7
         if int(self.__id_num) < 10:
             identifier = "ID" + "0" + str(self.__id_num)
         else:
             identifier = "ID" + str(self.__id_num)
 
-        # Add all images of the form "ID<id_num>_XXX.bmp
+        images_loaded = 0
+        # Add a number of images equal to num_images of the form 
+        # "ID<id_num>_XXX.bmp"
         for filename in os.listdir(self.__path):
+            if images_loaded >= num_images:
+                break
+
             if identifier in filename:
                 image_path = os.path.join(self.__path, filename)
                 img = cv2.imread(image_path, 0)
@@ -31,15 +37,19 @@ class Person:
                     print("image: {} not read properly".format(imagePath))
                 else:
                     # Convert the image to floating point
-                    img = np.float32(img)/255
+                    img = np.uint16(img)
                     # Add the image to the list
                     self.__images.append(img)
                     #print("{} loaded".format(image_path))
+                    images_loaded += 1
 
         self.__num_images = len(self.__images)
 
     def get_id_num(self):
         return self.__id_num
+
+    def get_images(self):
+        return self.__images
 
     def get_size(self):
         return self.__images[0].size
@@ -72,8 +82,11 @@ class Person:
         return Xi - Me
 
 def main():
+    ##########################################################################
+    # Training
     # 3. Calculate the mean vector, Me, for all persons in the system
-    people = [Person(TRAINING_DATASET, str(i)) for i in range(NUM_TRAINING)]
+    # There are 5 training images per person
+    people = [Person(TRAINING_DATASET, str(i), 5) for i in range(NUM_TRAINING)]
     size = people[0].get_size()
     # Use the first person to setup the mean vector
     Me = people[0].compute_mean()
@@ -122,15 +135,35 @@ def main():
     eigen_vectors = P.T
     for i in range(eigen_vectors.shape[0]):
         face = eigen_vectors[i].reshape(shape)
-        #norm_value = 1 / (np.amax(face))
-        #face *= norm_value
-        face += 0.5
+        # Normalize the eigenfaces???
+        norm_value = 255 / (np.amax(face))
+        face *= norm_value
         cv2.imwrite("eigen_face_{}.bmp".format(str(i)), face)
-        face = cv2.resize(face, (0,0), fx=5, fy=5)
-        print(face)
-        cv2.imshow("eigen face", face)
-        cv2.waitKey(0)
-        cv2.destroyAllWindows()
+        #print("Face number {}\n{}".format(str(i), face))
+
+    ##########################################################################
+    # Face recognition
+    # Create a Person object with 1 image for each person we want to test with
+    people_test = [Person(TESTING_DATASET, str(i), 1) for i in range(3, 14)]
+    for person in people_test:
+        print("Testing person {}".format(person.get_id_num()))
+        # 1. For the input image Im, change to 1 column vector: Y
+        Y = person.get_images()[0].flatten()
+        # 2. Calculate B = Y - Me
+        B = person.compute_deviation(Y, Me)
+        # 3. Calculate weight of the input data projected into eigensapce 
+        # wt_B=P'*B;
+        wt_B = np.matmul(P.T, B)
+        # 4. Calculate the euclidean distance for the input image:
+        # eud(i) = sqrt(sum((wt_B-wt_A(:,i)).^2));
+        # Could be done using list comprehension, but man would it be ugly . . .
+        eud_dist = wt_B = wt_A[:,0]
+        eud_dist = np.square(eud_dist)
+        for i in range(1, wt_A.shape[1]):
+            np.add(eud_dist, np.square(wt_B - wt_A[:,i]))
+        eud_dist = np.sqrt(eud_dist)
+        print(np.argmin(eud_dist))
+        # TODO, figure out why every person is matching with 8 . . .
 
 
 if __name__ == "__main__":
