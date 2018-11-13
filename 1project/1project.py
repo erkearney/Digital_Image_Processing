@@ -163,7 +163,12 @@ def main():
         eud_dist = np.zeros(NUM_TRAINING)
         for i in range(NUM_TRAINING):
             eud_dist[i] = np.sqrt(np.sum(np.square(np.subtract(wt_B, wt_A[:,i]))))
-        print(np.argsort(eud_dist))
+        index_sorted = np.argsort(eud_dist)
+        print(index_sorted)
+        for i in range(len(index_sorted)):
+            if int(index_sorted[i]) == int(person.get_id_num()):
+                print("Guess number {} was correct for person number {}".format(i, person.get_id_num()))
+                break
 
 if __name__ == "__main__":
     main()
