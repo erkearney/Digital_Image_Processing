@@ -107,7 +107,7 @@ def main():
     ATA = np.matmul(A.T, A)
     # 5. Calculate the eigen vectors of A' * A and store it as P2
     # https://docs.scipy.org/doc/numpy-1.15.1/reference/generated/numpy.linalg.eig.html
-    eigen_values, P2 = np.linalg.eig(ATA)
+    eigen_values, P2 = np.linalg.eigh(ATA)
 
     # 6. Calculate the weight of the training data projected into eigen space
     # with wt_A = P2*(A'*A)
@@ -135,36 +135,35 @@ def main():
     eigen_vectors = P.T
     for i in range(eigen_vectors.shape[0]):
         face = eigen_vectors[i].reshape(shape)
-        # Normalize the eigenfaces???
-        norm_value = 255 / (np.amax(face))
-        face *= norm_value
+        '''
+        cv2.imshow("face {}".format(str(i)), face)
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
         cv2.imwrite("eigen_face_{}.bmp".format(str(i)), face)
-        #print("Face number {}\n{}".format(str(i), face))
+        print("Face number {}\n{}".format(str(i), face))
+        '''
 
     ##########################################################################
     # Face recognition
+    start_num = 3
+    num_testing = 10
     # Create a Person object with 1 image for each person we want to test with
-    people_test = [Person(TESTING_DATASET, str(i), 1) for i in range(3, 14)]
+    people_test = [Person(TESTING_DATASET, str(i), 1) for i in range(start_num, (start_num + num_testing + 1))]
     for person in people_test:
         print("Testing person {}".format(person.get_id_num()))
         # 1. For the input image Im, change to 1 column vector: Y
         Y = person.get_images()[0].flatten()
         # 2. Calculate B = Y - Me
-        B = person.compute_deviation(Y, Me)
-        # 3. Calculate weight of the input data projected into eigensapce 
-        # wt_B=P'*B;
+        B = Y - Me
+        # 3. Calculate the weight of the input data projected into eigenspace
+        # wt_B=P'*b
         wt_B = np.matmul(P.T, B)
         # 4. Calculate the euclidean distance for the input image:
         # eud(i) = sqrt(sum((wt_B-wt_A(:,i)).^2));
-        # Could be done using list comprehension, but man would it be ugly . . .
-        eud_dist = wt_B = wt_A[:,0]
-        eud_dist = np.square(eud_dist)
-        for i in range(1, wt_A.shape[1]):
-            np.add(eud_dist, np.square(wt_B - wt_A[:,i]))
-        eud_dist = np.sqrt(eud_dist)
-        print(np.argmin(eud_dist))
-        # TODO, figure out why every person is matching with 8 . . .
-
+        eud_dist = np.zeros(NUM_TRAINING)
+        for i in range(NUM_TRAINING):
+            eud_dist[i] = np.sqrt(np.sum(np.square(np.subtract(wt_B, wt_A[:,i]))))
+        print(np.argsort(eud_dist))
 
 if __name__ == "__main__":
     main()
