@@ -1,11 +1,19 @@
-#https://www.learnopencv.com/principal-component-analysis/
 import cv2
 import numpy as np
+from matplotlib import pyplot as plt
 import os
+import argparse
+from pathlib import Path
+from matplotlib import pyplot as plt
 
 NUM_TRAINING = 20
-TRAINING_DATASET = "./LargeDataSet/enrolling"
-TESTING_DATASET = "./LargeDataSet/testing"
+DEFAULT_TRAINING_DATASET = "./LargeDataSet/enrolling"
+DEFAULT_TESTING_DATASET = "./LargeDataSet/testing"
+
+parser = argparse.ArgumentParser()
+parser.add_argument('-tr', "--training", help="path to the training dataset")
+parser.add_argument('-te', '--testing', help="path to the testing dataset")
+args = parser.parse_args()
 
 class Person:
     def __init__(self, path, id_num, num_images):
@@ -82,6 +90,22 @@ class Person:
         return Xi - Me
 
 def main():
+    # Setup
+    if args.training:
+        if Path(args.image).is_file():
+            img = cv2.imread(args.image)
+        else:
+            print('File {} not found'.format(args.image))
+            exit()
+    else:
+        print("Using default training dataset")
+        TRAINING_DATASET = DEFAULT_TRAINING_DATASET
+
+    if args.testing:
+        pass
+    else:
+        print("Using default testing dataset")
+        TESTING_DATASET = DEFAULT_TESTING_DATASET
     ##########################################################################
     # Training
     # 3. Calculate the mean vector, Me, for all persons in the system
@@ -116,10 +140,14 @@ def main():
     # 6b. Calculate the weight of the training data projected into eigensapce
     # wt_A = P'*A
     wt_A = np.matmul(P.T,A)
+    plt.plot(wt_A[0,:])
+    plt.xticks(np.arange(0, (NUM_TRAINING), step = 2))
+    plt.title("Weights for the first person");
+    plt.show()
 
     shape = people[0].get_shape()
-    '''
     # Show average face minus the mean
+    """
     average_faces = A.T
     for i in range(average_faces.shape[0]):
         face = np.reshape(average_faces[i], shape)
@@ -129,28 +157,30 @@ def main():
         cv2.imshow("face", face)
         cv2.waitKey(0)
         cv2.destroyAllWindows()
-    '''
+    """
 
-    # Show eigen faces
     eigen_vectors = P.T
+    # Show eigen faces
+    """
     for i in range(eigen_vectors.shape[0]):
         face = eigen_vectors[i].reshape(shape)
-        '''
         cv2.imshow("face {}".format(str(i)), face)
         cv2.waitKey(0)
         cv2.destroyAllWindows()
         cv2.imwrite("eigen_face_{}.bmp".format(str(i)), face)
         print("Face number {}\n{}".format(str(i), face))
-        '''
+    """
 
     ##########################################################################
     # Face recognition
-    start_num = 3
+    start_num = 5
     num_testing = 10
+    # This creates an array of 20 zeros
+    CMC_Array = [0] * NUM_TRAINING
     # Create a Person object with 1 image for each person we want to test with
-    people_test = [Person(TESTING_DATASET, str(i), 1) for i in range(start_num, (start_num + num_testing + 1))]
+    people_test = [Person(TESTING_DATASET, str(i), 1) for i in range(start_num, (start_num + num_testing))]
     for person in people_test:
-        print("Testing person {}".format(person.get_id_num()))
+        #print("Testing person {}".format(person.get_id_num()))
         # 1. For the input image Im, change to 1 column vector: Y
         Y = person.get_images()[0].flatten()
         # 2. Calculate B = Y - Me
@@ -164,11 +194,25 @@ def main():
         for i in range(NUM_TRAINING):
             eud_dist[i] = np.sqrt(np.sum(np.square(np.subtract(wt_B, wt_A[:,i]))))
         index_sorted = np.argsort(eud_dist)
-        print(index_sorted)
+        #print(index_sorted)
         for i in range(len(index_sorted)):
             if int(index_sorted[i]) == int(person.get_id_num()):
-                print("Guess number {} was correct for person number {}".format(i, person.get_id_num()))
+                #print("Guess number {} was correct for person number {}".format(i, person.get_id_num()))
+                CMC_Array[i] += 1
                 break
+    total = 0
+    for i in range(len(CMC_Array)):
+        total += CMC_Array[i]
+        # Normalize
+        CMC_Array[i] = total/num_testing
+    #print("CMC_Array: {}".format(CMC_Array))
+    plt.plot(CMC_Array)
+    plt.title("CMC")
+    plt.axis([0, NUM_TRAINING, 0, 1])
+    plt.xlabel("Guess")
+    plt.ylabel("Cumulative Accuracy")
+    plt.xticks(np.arange(0, (NUM_TRAINING+1), step = 2))
+    plt.show()
 
 if __name__ == "__main__":
     main()
