@@ -98,9 +98,11 @@ class Person:
             # array, so we need to take the transpose of the flattened image
             # to get our vector
             data[i,:] = image
+            # ------------------------------------------------------------------------
         # 2. For each person, calculate the average vector Xi
         Xi = np.mean(data, axis=0)
         return Xi
+        # ------------------------------------------------------------------------
 
     def compute_deviation(self, Xi, Me):
         # Returns Ai = Xi - Me
