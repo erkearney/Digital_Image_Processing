@@ -1,6 +1,7 @@
 # https://www.pyimagesearch.com/2018/07/16/opencv-saliency-detection/
 # This is a simple image saliency tutorial written in Python by 
 # Adrian Rosebrock, with some small modifications made by me.
+# The test images were provided by Rosebrock
 # https://docs.opencv.org/3.4.2/d8/d65/group__saliency.html
 # OpenCVs' saliency module doesn't come packaged by default, it's in 
 # the 'contrib' module: https://pypi.org/project/opencv-contrib-python/
