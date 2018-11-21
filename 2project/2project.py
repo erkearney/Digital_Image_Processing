@@ -31,12 +31,14 @@ def saliency(image):
     thresh_map = cv2.threshold(saliency_map, 0, 255, 
         cv2.THRESH_BINARY | cv2.THRESH_OTSU)[1]
 
+    cv2.imwrite("./output.jpg", saliency_map)
+    cv2.imwrite("./thresh.jpg", thresh_map)
     # Show the images
-    cv2.imshow("Input", image)
-    cv2.imshow("Output", saliency_map)
-    cv2.imshow("Tresh", thresh_map)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
+    #cv2.imshow("Input", image)
+    #cv2.imshow("Output", saliency_map)
+    #cv2.imshow("Tresh", thresh_map)
+    #cv2.waitKey(0)
+    #cv2.destroyAllWindows()
 
     return thresh_map
 
@@ -70,7 +72,8 @@ def calc_TSS(original_thresh, distorted_thresh):
 
 def main():
     # Validate the input images exist and then read them
-    input_image = Path("./test_image.bmp")
+    # Default input image:
+    input_image = Path("./lucy1_resized.jpg")
     if args.image:
         input_image = Path(args.image)
     print("Using {} as the input image".format(input_image))
@@ -80,7 +83,8 @@ def main():
     else:
         image = cv2.imread(str(input_image), 0)
 
-    distorted_image = Path("./distorted_image.bmp")
+    # Default distorted image
+    distorted_image = Path("./dog_destroyed.jpg")
     if args.distorted:
         distorted_image = Path(args.distorted)
     print("Using {} as the distorted image".format(distorted_image))
@@ -106,7 +110,6 @@ def main():
     calc_TSS(original_thresh, distorted_thresh)
 
     exit(0)
-
 
 if __name__ == "__main__":
     main()
