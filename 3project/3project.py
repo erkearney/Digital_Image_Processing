@@ -27,7 +27,9 @@ parser.add_argument("-v", "--video", help="path to the input video")
 parser.add_argument("-d", "--data", help="path to the GPS data")
 args = parser.parse_args()
 
-def setup():
+def get_inputs():
+    """ Get and verify user inputs, if there are no user inputs, verify and 
+    use the default resources. """
     if args.video:
         input_video = Path(args.video)
         print("Using {} as the input video".format(input_video))
@@ -50,9 +52,47 @@ def setup():
     if not input_data.is_file():
         print("ERROR: {} not found".format(input_data))
         exit(1)
+    
+    return input_video, input_data
+
+def process_GPS_data(input_data):
+    data = pd.read_csv(input_data, header=None)
+    # Personally, the only data points I care about are the timestamp,
+    # the frame number, and the x, y, and z acceleration, so let's
+    # create a custom dataframe to meet these specifications
+    startrow = 20 # Start at this row, some missing data in the rows before it
+
+    col_names = ["frame", "timestamp", "x-accel", "y-accel", "z-accel"]
+    processed_data = pd.DataFrame(index=range(len(data)-startrow) , columns=col_names)
+    
+    G_row = startrow # G_row is each row that contains G_data
+    frame = 6 # Offset to compensate for the fact we threw out some early data
+    for row in range(startrow, len(data)):
+        if row == G_row:
+            # Process the G data
+            split = str(data.iloc[row]).split("\\t")
+            timestamp = (split[1].split(" ")[1])
+            G_row += 11
+            frame += 1
+        else:
+            # Process the S data
+            split = str(data.iloc[row]).split("\\t")
+            z_accel = split[3].split("\n")[0]
+            processed_data.loc[[row-startrow], "x-accel"] = split[1]
+            processed_data.loc[[row-startrow], "y-accel"] = split[2]
+            processed_data.loc[[row-startrow], "z-accel"] = z_accel
+            processed_data.loc[[row-startrow], "timestamp"] = timestamp
+            processed_data.loc[[row-startrow], "frame"] = frame
+
+
+    processed_data = processed_data.dropna(how="all")
+    print(processed_data)
+
+
 
 def main():
-    setup()
+    input_video, input_data = get_inputs()
+    process_GPS_data(input_data)
 
 if __name__ == "__main__":
     main()
