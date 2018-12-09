@@ -21,7 +21,7 @@ import argparse
 # NUM_TRAINING_PEOPLE is the number of people to use in the training dataset
 # NUM_TESTING_PEOPLE is the number of people to use in the testing dataset
 # NUM_TRAINING_IMAGES is the number of images to use for each person in the training dataset
-NUM_TRAINING_PEOPLE = 20
+NUM_TRAINING_PEOPLE = 45
 NUM_TESTING_PEOPLE = 10
 NUM_TRAINING_IMAGES = 5
 DEFAULT_TRAINING_DATASET = "./LargeDataSet/enrolling"
@@ -30,6 +30,7 @@ DEFAULT_TESTING_DATASET = "./LargeDataSet/testing"
 parser = argparse.ArgumentParser()
 parser.add_argument('-tr', "--training", help="path to the training dataset")
 parser.add_argument('-te', '--testing', help="path to the testing dataset")
+parser.add_argument('-s', '--show', action="store_true", help="show the average faces and eigen faces")
 args = parser.parse_args()
 
 class Person:
@@ -179,29 +180,26 @@ def main():
 
     eigen_vectors = P.T
     # ------------------------------------------------------------------------
-    # Show average face minus the mean
-    """
-    shape = people[0].get_shape()
-    average_faces = A.T
-    for i in range(average_faces.shape[0]):
-        face = np.reshape(average_faces[i], shape)
-        #norm_value = 1 / (np.amax(face))
-        #face *= norm_value
-        face = cv2.resize(face, (0,0), fx=5, fy=5)
-        cv2.imshow("face", face)
-        cv2.waitKey(0)
-        cv2.destroyAllWindows()
-    """
-    # Show eigen faces
-    """
-    for i in range(eigen_vectors.shape[0]):
-        face = eigen_vectors[i].reshape(shape)
-        cv2.imshow("face {}".format(str(i)), face)
-        cv2.waitKey(0)
-        cv2.destroyAllWindows()
-        cv2.imwrite("eigen_face_{}.bmp".format(str(i)), face)
-        print("Face number {}\n{}".format(str(i), face))
-    """
+    if args.show:
+        # Show average face minus the mean
+        shape = people[0].get_shape()
+        average_faces = A.T
+        for i in range(average_faces.shape[0]):
+            face = np.reshape(average_faces[i], shape)
+            #norm_value = 1 / (np.amax(face))
+            #face *= norm_value
+            face = cv2.resize(face, (0,0), fx=5, fy=5)
+            cv2.imshow("average face {}".format(str(i)), face)
+            cv2.waitKey(0)
+            cv2.destroyAllWindows()
+        # Show eigen faces
+        for i in range(eigen_vectors.shape[0]):
+            face = eigen_vectors[i].reshape(shape)
+            cv2.imshow("eigen face {}".format(str(i)), face)
+            cv2.waitKey(0)
+            cv2.destroyAllWindows()
+            cv2.imwrite("eigen_face_{}.bmp".format(str(i)), face)
+            print("Face number {}\n{}".format(str(i), face))
 
     ##########################################################################
     # Face recognition
