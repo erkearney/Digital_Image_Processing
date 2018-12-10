@@ -26,6 +26,7 @@ parser = argparse.ArgumentParser(
 )
 parser.add_argument("-v", "--video", help="path to the input video")
 parser.add_argument("-d", "--data", help="path to the GPS data")
+parser.add_argument("-p", "--plot", action="store_true", help="Show the plot of the x, y, and z acceleration")
 args = parser.parse_args()
 
 def get_inputs():
@@ -57,23 +58,24 @@ def get_inputs():
     return input_video, input_data
 
 def process_GPS_data(input_data):
+    """ Converts the GPS data into a more useful format, consisting of:
+    frame | timestamp | x-accel | y_accel | z_accel """
+    global startrow
+    global G_row
+    global rows_btwn_G_rows
+    global start_frame
+    frame = start_frame
     data = pd.read_csv(input_data, header=None)
-    # Personally, the only data points I care about are the timestamp,
-    # the frame number, and the x, y, and z acceleration, so let's
-    # create a custom dataframe to meet these specifications
-    startrow = 20 # Start at this row, some missing data in the rows before it
 
-    col_names = ["frame", "timestamp", "x_accel", "y-accel", "z-accel"]
+    col_names = ["frame", "timestamp", "x_accel", "y_accel", "z_accel"]
     processed_data = pd.DataFrame(index=range(len(data)-startrow) , columns=col_names)
     
-    G_row = startrow # G_row is each row that contains G_data
-    frame = 6 # Offset to compensate for the fact we threw out some early data
     for row in range(startrow, len(data)):
         if row == G_row:
             # Process the G data
             split = str(data.iloc[row]).split("\\t")
             timestamp = (split[1].split(" ")[1])
-            G_row += 11
+            G_row += rows_btwn_G_rows
             frame += 1
         else:
             processed_data.loc[[row-startrow], "frame"] = frame
@@ -82,17 +84,52 @@ def process_GPS_data(input_data):
             split = str(data.iloc[row]).split("\\t")
             z_accel = split[3].split("\n")[0]
             processed_data.loc[[row-startrow], "x_accel"] = float(split[1])
-            processed_data.loc[[row-startrow], "y-accel"] = float(split[2])
-            processed_data.loc[[row-startrow], "z-accel"] = float(z_accel)
+            processed_data.loc[[row-startrow], "y_accel"] = float(split[2])
+            processed_data.loc[[row-startrow], "z_accel"] = float(z_accel)
 
     processed_data = processed_data.dropna(how="all") # Drop empty rows
-    print(processed_data["x_accel"].describe())
+    return processed_data
+
+def plot_data(processed_data):
+    """ Plots the x-accel, y_accel, and z_accel over time
+    processed_data should be a pandas dataframe returned by 
+    process_GPS_data() """
     processed_data.plot.line()
+    plt.title("x, y, and z acceleration over time")
+    plt.xlabel("Time")
+    plt.ylabel("Acceleration")
     plt.show()
+
+def compute_delta(processed_data):
+    col_names = ["delta_sum", "delta_x", "delta_y", "delta_z"]
+    delta = pd.DataFrame(index=range(1), columns = col_names)
+    previous_x = previous_y = previous_z = None
+    for index, row in processed_data.iterrows():
+        x, y, z = float(row["x_accel"]), float(row["y_accel"]), float(row["z_accel"])
+        if previous_x == None:
+            previous_x, previous_y, previous_z = x, y, z
+        else:
+            delta_x, delta_y, delta_z = abs(x - previous_x), abs(y - previous_y), abs(z - previous_z)
+            delta_sum = delta_x + delta_y + delta_z
+            new_row = pd.DataFrame([[delta_sum, delta_x, delta_y, delta_z]], columns = col_names)
+            delta = delta.append(new_row, ignore_index=True)
+
+    delta = delta.dropna(how="all")
+    return delta
 
 def main():
     input_video, input_data = get_inputs()
-    process_GPS_data(input_data)
+    processed_data = process_GPS_data(input_data)
+    if args.plot:
+        plot_data(processed_data)
+    delta = compute_delta(processed_data)
+    print(delta["delta_sum"].idxmax())
+
+# Globals
+startrow = 20 # Offset to compensate for the fact we threw out some early data
+G_row = startrow # G_row is each row that contains G_data
+rows_btwn_G_rows = 11 # Number of rows between each G_row
+start_frame = 6 # Offset to compensate for the fact we threw out some early data
 
 if __name__ == "__main__":
     main()
