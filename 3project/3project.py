@@ -17,6 +17,7 @@ Here is his GitHub: https://github.com/clownfragment """
 import cv2                  # For image and video analysis
 import numpy as np          # For matrix/vector manipulation
 import pandas as pd         # For reading and analyzing the GPS data
+from matplotlib import pyplot as plt
 import argparse             # For creating and handling command line arguments
 from pathlib import Path    # For reading file paths
 
@@ -62,7 +63,7 @@ def process_GPS_data(input_data):
     # create a custom dataframe to meet these specifications
     startrow = 20 # Start at this row, some missing data in the rows before it
 
-    col_names = ["frame", "timestamp", "x-accel", "y-accel", "z-accel"]
+    col_names = ["frame", "timestamp", "x_accel", "y-accel", "z-accel"]
     processed_data = pd.DataFrame(index=range(len(data)-startrow) , columns=col_names)
     
     G_row = startrow # G_row is each row that contains G_data
@@ -75,20 +76,19 @@ def process_GPS_data(input_data):
             G_row += 11
             frame += 1
         else:
+            processed_data.loc[[row-startrow], "frame"] = frame
+            processed_data.loc[[row-startrow], "timestamp"] = timestamp
             # Process the S data
             split = str(data.iloc[row]).split("\\t")
             z_accel = split[3].split("\n")[0]
-            processed_data.loc[[row-startrow], "x-accel"] = split[1]
-            processed_data.loc[[row-startrow], "y-accel"] = split[2]
-            processed_data.loc[[row-startrow], "z-accel"] = z_accel
-            processed_data.loc[[row-startrow], "timestamp"] = timestamp
-            processed_data.loc[[row-startrow], "frame"] = frame
+            processed_data.loc[[row-startrow], "x_accel"] = float(split[1])
+            processed_data.loc[[row-startrow], "y-accel"] = float(split[2])
+            processed_data.loc[[row-startrow], "z-accel"] = float(z_accel)
 
-
-    processed_data = processed_data.dropna(how="all")
-    print(processed_data)
-
-
+    processed_data = processed_data.dropna(how="all") # Drop empty rows
+    print(processed_data["x_accel"].describe())
+    processed_data.plot.hist()
+    plt.show()
 
 def main():
     input_video, input_data = get_inputs()
