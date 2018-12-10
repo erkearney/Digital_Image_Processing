@@ -76,7 +76,6 @@ def process_GPS_data(input_data):
             split = str(data.iloc[row]).split("\\t")
             timestamp = (split[1].split(" ")[1])
             G_row += rows_btwn_G_rows
-            frame += 1
         else:
             processed_data.loc[[row-startrow], "frame"] = frame
             processed_data.loc[[row-startrow], "timestamp"] = timestamp
@@ -86,16 +85,16 @@ def process_GPS_data(input_data):
             processed_data.loc[[row-startrow], "x_accel"] = float(split[1])
             processed_data.loc[[row-startrow], "y_accel"] = float(split[2])
             processed_data.loc[[row-startrow], "z_accel"] = float(z_accel)
+            frame += 1
 
     processed_data = processed_data.dropna(how="all") # Drop empty rows
     return processed_data
 
-def plot_data(processed_data):
-    """ Plots the x-accel, y_accel, and z_accel over time
-    processed_data should be a pandas dataframe returned by 
-    process_GPS_data() """
-    processed_data.plot.line()
-    plt.title("x, y, and z acceleration over time")
+def plot_data(data, title):
+    """ Plots data, which should be a pandas dataframe returned by one of
+    the other methods in this program. """
+    data.plot.line()
+    plt.title(title)
     plt.xlabel("Time")
     plt.ylabel("Acceleration")
     plt.show()
@@ -120,10 +119,14 @@ def compute_delta(processed_data):
 def main():
     input_video, input_data = get_inputs()
     processed_data = process_GPS_data(input_data)
-    if args.plot:
-        plot_data(processed_data)
     delta = compute_delta(processed_data)
-    print(delta["delta_sum"].idxmax())
+    if args.plot:
+        plot_data(processed_data, "x, y, and z acceleration")
+        plot_data(delta, "delta x, y, and z, and the sum of them all")
+    # The time with the greatest delta value is most likely to be the time of the crash
+    crash_index = delta["delta_y"].idxmax() 
+    print("I think the crash happened here:")
+    print(processed_data.iloc[crash_index])
 
 # Globals
 startrow = 20 # Offset to compensate for the fact we threw out some early data
