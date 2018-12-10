@@ -14,12 +14,12 @@ https://metrostate-bb.blackboard.com/webapps/blackboard/content/listContent.jsp?
 As mentioned, Tovio Roberts provided tremendous help to me for this project.
 Here is his GitHub: https://github.com/clownfragment """
 
-import cv2                  # For image and video analysis
-import numpy as np          # For matrix/vector manipulation
-import pandas as pd         # For reading and analyzing the GPS data
-from matplotlib import pyplot as plt
-import argparse             # For creating and handling command line arguments
-from pathlib import Path    # For reading file paths
+import cv2                              # For image and video analysis
+import numpy as np                      # For matrix/vector manipulation
+import pandas as pd                     # For reading and analyzing the GPS data
+from matplotlib import pyplot as plt    # For plotting and visualizing
+import argparse                         # For creating and handling command line arguments
+from pathlib import Path                # For reading file paths
 
 parser = argparse.ArgumentParser(
     description="Vehicle crash and pedestrian detector built using OpenCV, numpy, and pandas"
@@ -87,7 +87,7 @@ def process_GPS_data(input_data):
 
     processed_data = processed_data.dropna(how="all") # Drop empty rows
     print(processed_data["x_accel"].describe())
-    processed_data.plot.hist()
+    processed_data.plot.line()
     plt.show()
 
 def main():
