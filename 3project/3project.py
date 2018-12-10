@@ -85,7 +85,7 @@ def process_GPS_data(input_data):
             processed_data.loc[[row-startrow], "x_accel"] = float(split[1])
             processed_data.loc[[row-startrow], "y_accel"] = float(split[2])
             processed_data.loc[[row-startrow], "z_accel"] = float(z_accel)
-            frame += 1
+            frame += 3
 
     processed_data = processed_data.dropna(how="all") # Drop empty rows
     return processed_data
@@ -127,6 +127,28 @@ def main():
     crash_index = delta["delta_y"].idxmax() 
     print("I think the crash happened here:")
     print(processed_data.iloc[crash_index])
+    frame_num = processed_data.iloc[crash_index].frame
+
+    cap = cv2.VideoCapture(str(input_video))
+    if (cap.isOpened() == False):
+        print("ERROR, could not open video: {}".format(input_video))
+
+    cap.set(1, frame_num)
+    while(cap.isOpened()):
+        ret, frame = cap.read()
+        if ret == True:
+            cv2.imshow('Frame', frame)
+
+            if cv2.waitKey(25) & 0xFF == ord('q'):
+                break
+
+        else:
+            break
+
+    cap.release()
+
+    cv2.destroyAllWindows()
+    
 
 # Globals
 startrow = 20 # Offset to compensate for the fact we threw out some early data
