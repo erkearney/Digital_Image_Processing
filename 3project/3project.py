@@ -27,6 +27,7 @@ parser = argparse.ArgumentParser(
 parser.add_argument("-v", "--video", help="path to the input video")
 parser.add_argument("-d", "--data", help="path to the GPS data")
 parser.add_argument("-p", "--plot", action="store_true", help="Show the plot of the x, y, and z acceleration")
+parser.add_argument("-s", "--show", action="store_true", help="Show the part of the video right before the crash")
 args = parser.parse_args()
 
 def get_inputs():
@@ -116,19 +117,8 @@ def compute_delta(processed_data):
     delta = delta.dropna(how="all")
     return delta
 
-def main():
-    input_video, input_data = get_inputs()
-    processed_data = process_GPS_data(input_data)
-    delta = compute_delta(processed_data)
-    if args.plot:
-        plot_data(processed_data, "x, y, and z acceleration")
-        plot_data(delta, "delta x, y, and z, and the sum of them all")
-    # The time with the greatest delta value is most likely to be the time of the crash
-    crash_index = delta["delta_y"].idxmax() 
-    print("I think the crash happened here:")
-    print(processed_data.iloc[crash_index])
-    frame_num = processed_data.iloc[crash_index].frame
-
+def open_video_at_frame(input_video, frame_num):
+    print("Opening the video to right before the crash, press 'q' to exit")
     cap = cv2.VideoCapture(str(input_video))
     if (cap.isOpened() == False):
         print("ERROR, could not open video: {}".format(input_video))
@@ -148,6 +138,26 @@ def main():
     cap.release()
 
     cv2.destroyAllWindows()
+
+def main():
+    input_video, input_data = get_inputs()
+    processed_data = process_GPS_data(input_data)
+    delta = compute_delta(processed_data)
+    # The time with the greatest delta value is most likely to be the time of the crash
+    crash_index = delta["delta_y"].idxmax() 
+    print("I think the crash happened here:")
+    print(processed_data.iloc[crash_index])
+    frame_num = processed_data.iloc[crash_index].frame
+    if args.plot:
+        # The frames were being plotted with the x, y, and z acceleration, 
+        # so I drop that column before plotting, not ideal obviously, but
+        # works for now ...
+        processed_data = processed_data.drop(columns=["frame"], axis=1)
+        plot_data(processed_data, "x, y, and z acceleration")
+        plot_data(delta, "delta x, y, and z, and the sum of them all")
+    if args.show:
+        open_video_at_frame(input_video, frame_num)
+
     
 
 # Globals
