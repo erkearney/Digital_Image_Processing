@@ -11,6 +11,8 @@ Due to its large filesize, the video, "0.MOV", will not be included on my
 GitHub. It can be found here:
 https://metrostate-bb.blackboard.com/webapps/blackboard/content/listContent.jsp?course_id=_131037_1&content_id=_7094184_1
 
+This article helped me with pedestrian detection: https://www.pyimagesearch.com/2015/11/09/pedestrian-detection-opencv/
+
 As mentioned, Tovio Roberts provided tremendous help to me for this project.
 Here is his GitHub: https://github.com/clownfragment """
 
@@ -20,6 +22,7 @@ import pandas as pd                     # For reading and analyzing the GPS data
 from matplotlib import pyplot as plt    # For plotting and visualizing
 import argparse                         # For creating and handling command line arguments
 from pathlib import Path                # For reading file paths
+import imutils                          # For predestrial detection
 
 parser = argparse.ArgumentParser(
     description="Vehicle crash and pedestrian detector built using OpenCV, numpy, and pandas"
@@ -118,16 +121,32 @@ def compute_delta(processed_data):
     return delta
 
 def open_video_at_frame(input_video, frame_num):
+    # Initalize the HOG descriptor/person detector
+    hog = cv2.HOGDescriptor()
+    hog.setSVMDetector(cv2.HOGDescriptor_getDefaultPeopleDetector())
     print("Opening the video to right before the crash, press 'q' to exit")
     cap = cv2.VideoCapture(str(input_video))
     if (cap.isOpened() == False):
         print("ERROR, could not open video: {}".format(input_video))
 
     cap.set(1, frame_num)
+    i = 0
     while(cap.isOpened()):
         ret, frame = cap.read()
         if ret == True:
             cv2.imshow('Frame', frame)
+            i += 1
+            if i > 1400 and i < 1415:
+                cv2.imwrite('frame_' + str(i) + '.jpg', frame)
+                # Detect people in the frame
+                (rects, weights) = hog.detectMultiScale(frame, winStride=(4,4),
+                    padding=(8,8), scale=1.05)
+
+                # Draw the bounding boxes
+                for (x, y, w, h) in rects:
+                    cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 0, 255), 2)
+
+                cv2.imwrite('frame_' + str(i) + 'bounded.jpg', frame)
 
             if cv2.waitKey(25) & 0xFF == ord('q'):
                 break
@@ -158,7 +177,6 @@ def main():
     if args.show:
         open_video_at_frame(input_video, frame_num)
 
-    
 
 # Globals
 startrow = 20 # Offset to compensate for the fact we threw out some early data
