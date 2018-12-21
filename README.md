@@ -1,4 +1,4 @@
-# cs390s
+# cs390s -- Digital Image Processing
 ## Professor Feng Jiang -- Fall 2018
 ### All images were provided by professor Jiang, unless otherwise stated
 
