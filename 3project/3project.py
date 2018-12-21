@@ -22,7 +22,7 @@ import pandas as pd                     # For reading and analyzing the GPS data
 from matplotlib import pyplot as plt    # For plotting and visualizing
 import argparse                         # For creating and handling command line arguments
 from pathlib import Path                # For reading file paths
-import imutils                          # For predestrial detection
+import imutils                          # For predestrian detection
 
 parser = argparse.ArgumentParser(
     description="Vehicle crash and pedestrian detector built using OpenCV, numpy, and pandas"
